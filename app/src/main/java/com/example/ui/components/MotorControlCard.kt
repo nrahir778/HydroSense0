@@ -18,26 +18,36 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Autorenew
 import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +70,11 @@ fun MotorControlCard(
   modifier: Modifier = Modifier
 ) {
   val isRunning = tankState.isMotorOn && isConnected
+
+  // Local Slider State for Target Level
+  var targetSliderValue by remember(tankState.targetLevel) {
+    mutableFloatStateOf(tankState.targetLevel)
+  }
 
   val infiniteTransition = rememberInfiniteTransition(label = "rotorRotation")
   val rotationAngle by infiniteTransition.animateFloat(
@@ -92,18 +107,21 @@ fun MotorControlCard(
     Column(
       modifier = Modifier
         .fillMaxWidth()
-        .padding(20.dp)
+        .padding(16.dp)
     ) {
-      // Header: Motor Title & Pin D7 info
+      // Header: Motor Title & Pin D7 info (optimized for all screen widths)
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+          modifier = Modifier.weight(1f),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
           Box(
             modifier = Modifier
-              .size(42.dp)
+              .size(40.dp)
               .clip(CircleShape)
               .background(
                 if (isRunning) PumpActiveGreen.copy(alpha = 0.2f)
@@ -116,40 +134,45 @@ fun MotorControlCard(
               contentDescription = null,
               tint = if (isRunning) PumpActiveGreen else MaterialTheme.colorScheme.primary,
               modifier = Modifier
-                .size(26.dp)
+                .size(24.dp)
                 .then(if (isRunning) Modifier.rotate(rotationAngle) else Modifier)
             )
           }
 
-          Spacer(modifier = Modifier.width(12.dp))
+          Spacer(modifier = Modifier.width(10.dp))
 
-          Column {
+          Column(modifier = Modifier.weight(1f)) {
             Text(
               text = "Pump Motor (Relay D7)",
               style = MaterialTheme.typography.titleMedium,
               fontWeight = FontWeight.Bold,
-              color = if (isRunning) Color.White else MaterialTheme.colorScheme.onSurface
+              color = if (isRunning) Color.White else MaterialTheme.colorScheme.onSurface,
+              maxLines = 1
             )
             Text(
               text = when {
                 !isConnected -> "Awaiting HC-05 Connection"
-                isRunning -> "Relay D7 Active LOW (Motor Running)"
-                else -> "Relay D7 Standby HIGH (Motor Stopped)"
+                isRunning -> "Relay D7 ON (Active LOW)"
+                else -> "Relay D7 OFF (Idle HIGH)"
               },
               style = MaterialTheme.typography.bodySmall,
-              color = if (isRunning) Color(0xFFA7F3D0) else MaterialTheme.colorScheme.onSurfaceVariant
+              color = if (isRunning) Color(0xFFA7F3D0) else MaterialTheme.colorScheme.onSurfaceVariant,
+              maxLines = 1
             )
           }
         }
 
-        // Live Relay state chip
+        Spacer(modifier = Modifier.width(8.dp))
+
+        // Live Relay state chip - single line, never wraps
         Surface(
           shape = RoundedCornerShape(8.dp),
           color = when {
             !isConnected -> MaterialTheme.colorScheme.surfaceVariant
             isRunning -> PumpActiveGreen.copy(alpha = 0.2f)
             else -> MaterialTheme.colorScheme.surfaceVariant
-          }
+          },
+          modifier = Modifier.wrapContentWidth()
         ) {
           Text(
             text = when {
@@ -157,30 +180,31 @@ fun MotorControlCard(
               isRunning -> "ACTIVE LOW"
               else -> "IDLE HIGH"
             },
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             color = when {
               !isConnected -> MaterialTheme.colorScheme.onSurfaceVariant
               isRunning -> PumpActiveGreen
               else -> MaterialTheme.colorScheme.onSurfaceVariant
-            }
+            },
+            maxLines = 1
           )
         }
       }
 
-      Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(14.dp))
 
-      // Runtime Duration & Last Alert info
+      // Runtime Duration Bar
       Row(
         modifier = Modifier
           .fillMaxWidth()
-          .clip(RoundedCornerShape(16.dp))
+          .clip(RoundedCornerShape(14.dp))
           .background(
             if (isRunning) Color.Black.copy(alpha = 0.25f)
             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
           )
-          .padding(horizontal = 16.dp, vertical = 12.dp),
+          .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
@@ -189,7 +213,7 @@ fun MotorControlCard(
             imageVector = Icons.Default.Timer,
             contentDescription = null,
             tint = if (isRunning) Color(0xFFA7F3D0) else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(18.dp)
           )
           Spacer(modifier = Modifier.width(8.dp))
           Text(
@@ -207,9 +231,9 @@ fun MotorControlCard(
         )
       }
 
-      Spacer(modifier = Modifier.height(16.dp))
+      Spacer(modifier = Modifier.height(14.dp))
 
-      // Target Water Level Setter (Arduino TARGET:<val>)
+      // Target Water Level Slider Section (Requested Feature)
       Column(
         modifier = Modifier
           .fillMaxWidth()
@@ -217,12 +241,16 @@ fun MotorControlCard(
           .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
           .padding(14.dp)
       ) {
+        // Slider Header: Label and readout
         Row(
           modifier = Modifier.fillMaxWidth(),
           horizontalArrangement = Arrangement.SpaceBetween,
           verticalAlignment = Alignment.CenterVertically
         ) {
-          Row(verticalAlignment = Alignment.CenterVertically) {
+          Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+          ) {
             Icon(
               imageVector = Icons.Default.Flag,
               contentDescription = null,
@@ -233,50 +261,139 @@ fun MotorControlCard(
             Text(
               text = "Arduino Target Level",
               style = MaterialTheme.typography.bodyMedium,
-              fontWeight = FontWeight.SemiBold
+              fontWeight = FontWeight.Bold
             )
           }
 
+          // Current active target on Arduino vs Slider
+          Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+              text = "${targetSliderValue.toInt()}%",
+              style = MaterialTheme.typography.titleMedium,
+              fontWeight = FontWeight.ExtraBold,
+              color = Color(0xFFFFB300)
+            )
+            if (targetSliderValue.toInt() != tankState.targetLevel.toInt()) {
+              Spacer(modifier = Modifier.width(4.dp))
+              Text(
+                text = "(Pending)",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontSize = 10.sp
+              )
+            }
+          }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // The Smooth Slider
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
           Text(
-            text = "${tankState.targetLevel.toInt()}%",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.ExtraBold,
-            color = Color(0xFFFFB300)
+            text = "10%",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 10.sp
+          )
+
+          Slider(
+            value = targetSliderValue,
+            onValueChange = { targetSliderValue = it },
+            valueRange = 10f..95f,
+            steps = 16,
+            modifier = Modifier
+              .weight(1f)
+              .padding(horizontal = 6.dp)
+              .testTag("target_level_slider"),
+            colors = SliderDefaults.colors(
+              thumbColor = Color(0xFFFFB300),
+              activeTrackColor = Color(0xFFFFB300),
+              inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+          )
+
+          Text(
+            text = "95%",
+            style = MaterialTheme.typography.labelSmall,
+            color = DangerRed,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold
           )
         }
 
-        Spacer(modifier = Modifier.height(6.dp))
-
-        // Quick Preset Chips for Target
+        // Quick Preset Chips to snap slider quickly
         Row(
           modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.spacedBy(8.dp)
+          horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-          listOf(60f, 70f, 80f, 90f).forEach { preset ->
-            val isSelected = tankState.targetLevel.toInt() == preset.toInt()
+          listOf(50f, 60f, 70f, 80f, 90f).forEach { preset ->
+            val isCurrent = targetSliderValue.toInt() == preset.toInt()
             FilterChip(
-              selected = isSelected,
-              onClick = { onSetTargetLevel(preset) },
-              label = { Text("${preset.toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-              modifier = Modifier.weight(1f)
+              selected = isCurrent,
+              onClick = { targetSliderValue = preset },
+              label = {
+                Text(
+                  text = "${preset.toInt()}%",
+                  fontSize = 11.sp,
+                  fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal
+                )
+              },
+              modifier = Modifier.weight(1f),
+              colors = FilterChipDefaults.filterChipColors(
+                selectedContainerColor = Color(0xFFFFB300).copy(alpha = 0.25f),
+                selectedLabelColor = Color(0xFFFFB300)
+              )
             )
           }
         }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Prominent "SET TARGET" Button
+        ElevatedButton(
+          onClick = {
+            onSetTargetLevel(targetSliderValue)
+          },
+          modifier = Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .testTag("set_target_button"),
+          shape = RoundedCornerShape(12.dp),
+          colors = ButtonDefaults.elevatedButtonColors(
+            containerColor = Color(0xFFFFB300),
+            contentColor = Color(0xFF1F1600)
+          )
+        ) {
+          Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp)
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text(
+            text = "SET TARGET (${targetSliderValue.toInt()}%)",
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = 13.sp
+          )
+        }
       }
 
-      Spacer(modifier = Modifier.height(18.dp))
+      Spacer(modifier = Modifier.height(16.dp))
 
-      // Primary Large Action Button
+      // Primary Large Motor Action Button
       Button(
         onClick = onToggleMotor,
         modifier = Modifier
           .fillMaxWidth()
-          .height(56.dp)
+          .height(54.dp)
           .testTag("motor_power_toggle_button"),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
           containerColor = when {
-            !isConnected -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+            !isConnected -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
             isRunning -> DangerRed
             else -> MaterialTheme.colorScheme.primary
           },
@@ -303,7 +420,8 @@ fun MotorControlCard(
               else -> "START MOTOR (MOTOR_ON)"
             },
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.ExtraBold
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1
           )
         }
       }

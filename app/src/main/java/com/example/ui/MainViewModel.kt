@@ -166,7 +166,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val clamped = newTarget.coerceIn(1.0f, 95.0f)
     _tankState.value = _tankState.value.copy(targetLevel = clamped)
     val cmd = "TARGET:${String.format(java.util.Locale.US, "%.1f", clamped)}"
-    addLog(LogType.TX, "$cmd (Set Target Water Level to ${clamped.toInt()}%)")
+    addLog(LogType.TX, "$cmd (Target Level set to ${clamped.toInt()}%)")
+    triggerHaptic(60)
     if (connectionState.value is ConnectionState.Connected) {
       sendRawCommand(cmd)
     }
